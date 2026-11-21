@@ -1,0 +1,15 @@
+=== PHA 1: STRUCTURE RECOVERY (sk2decompile-struct-6.7b) ===
+Load model time: 413.16s
+Inference time: 4153.99s (4.720 s/hàm)
+Total generated tokens: 312464 | Speed: 75.22 tokens/s
+GPU VRAM snapshot:
+0, 13007 MiB, 15360 MiB
+1, 13007 MiB, 15360 MiB
+
+=== PHA 2: IDENTIFIER NAMING (sk2decompile-ident-6.7b) ===
+Load model time: 386.06s
+Inference time: 3904.69s (4.437 s/hàm)
+Total generated tokens: 314489 | Speed: 80.54 tokens/s
+GPU VRAM snapshot:
+0, 12999 MiB, 15360 MiB
+1, 12999 MiB, 15360 MiB

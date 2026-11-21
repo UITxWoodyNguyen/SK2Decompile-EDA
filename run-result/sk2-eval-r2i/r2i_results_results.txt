@@ -1,0 +1,4 @@
+r2i O0 sk2_phase1: 6.49, r2i O0 sk2_phase2: 5.38, 
+r2i O1 sk2_phase1: 13.53, r2i O1 sk2_phase2: 10.85, 
+r2i O2 sk2_phase1: 4.94, r2i O2 sk2_phase2: 2.47, 
+r2i O3 sk2_phase1: 5.15, r2i O3 sk2_phase2: 4.76, 

@@ -1,0 +1,6 @@
+opt,re_compilation,re_executability,r2i_phase1,r2i_readability,edit_similarity
+O0,22.07,0.0,6.49,5.38,31.22
+O1,8.29,0.0,13.53,10.85,30.04
+O2,13.0,0.0,4.94,2.47,30.42
+O3,17.84,0.0,5.15,4.76,26.35
+ALL_AVG,15.45,0.0,7.51,5.9,29.42
