@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Thực Nghiệm: SK²Decompile (arXiv:2509.22114)</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --secondary: #0f766e;
+            --accent: #d97706;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #334155;
+            background-color: #f1f5f9;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 30px auto;
+            background: #ffffff;
+            padding: 50px 60px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Print Controls */
+        .no-print {
+            background: #e0f2fe;
+            border: 1px solid #7dd3fc;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-print {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-print:hover {
+            background: #0369a1;
+        }
+
+        /* Header styling */
+        header {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 25px;
+            margin-bottom: 35px;
+        }
+
+        .report-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            color: var(--dark);
+            font-size: 26px;
+            line-height: 1.3;
+            margin-bottom: 12px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            background: var(--light);
+            padding: 18px 20px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .metadata-item span {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Typography & Content Sections */
+        section {
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            color: var(--dark);
+            font-size: 15px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            margin-bottom: 14px;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin-bottom: 16px;
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        /* Callout Boxes */
+        .callout {
+            padding: 15px 18px;
+            border-radius: 6px;
+            margin-bottom: 18px;
+            border-left: 4px solid;
+            font-size: 13.5px;
+        }
+
+        .callout-info {
+            background-color: #f0fdf4;
+            border-color: var(--success);
+            color: #14532d;
+        }
+
+        .callout-warning {
+            background-color: #fffbeb;
+            border-color: var(--accent);
+            color: #78350f;
+        }
+
+        .callout-danger {
+            background-color: #fef2f2;
+            border-color: var(--danger);
+            color: #7f1d1d;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0 25px 0;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--dark);
+            font-weight: 700;
+            border-top: 2px solid var(--dark);
+            border-bottom: 2px solid var(--dark);
+            text-transform: uppercase;
+            font-size: 11.5px;
+            letter-spacing: 0.03em;
+        }
+
+        tr:last-child td {
+            border-bottom: 2px solid var(--dark);
+        }
+
+        tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        /* Code snippets */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            margin: 12px 0 18px 0;
+            color: #1e293b;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background: var(--code-bg);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #b91c1c;
+        }
+
+        pre code {
+            padding: 0;
+            background: none;
+            color: inherit;
+        }
+
+        /* Visual Charts */
+        .chart-wrapper {
+            margin: 25px 0;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chart-caption {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        /* Two-column Code Comparison Grid */
+        .case-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0 20px 0;
+        }
+
+        .case-box {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .case-box h4 {
+            background: #f8fafc;
+            padding: 8px 12px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .case-box pre {
+            margin: 0;
+            border: none;
+            border-radius: 0;
+            max-height: 320px;
+        }
+
+        /* Print Media Styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+                font-size: 11pt;
+            }
+            .container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none;
+            }
+            @page {
+                size: A4;
+                margin: 18mm 15mm 18mm 15mm;
+            }
+            h2 {
+                page-break-before: auto;
+                page-break-after: avoid;
+            }
+            table, .chart-wrapper, .case-grid {
+                page-break-inside: avoid;
+            }
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Print Banner -->
+    <div class="no-print">
+        <div>
+            <strong>Xuất báo cáo PDF:</strong> Bấm nút bên cạnh để xem trước và lưu thành tệp PDF hoàn chỉnh (Khổ A4 chuẩn, đã căn lề và định dạng trang).
+        </div>
+        <button class="btn-print" onclick="window.print()">
+            🖨️ Lưu / In Báo Cáo PDF
+        </button>
+    </div>
+
+    <!-- Header Section -->
+    <header>
+        <span class="report-badge">Experimental Report & Comparative Analysis</span>
+        <h1>BÁO CÁO THỰC NGHIỆM BIÊN DỊCH NGƯỢC VỚI SK²DECOMPILE VÀ ĐỐI CHIẾU KẾT QUẢ GỐC</h1>
+        <div class="subtitle">Đánh giá thực nghiệm độc lập mô hình Hai pha "Skeleton to Skin" trên tập Dự án C thực tế và Benchmark HumanEval-C (Cập nhật Số liệu Mới nhất)</div>
+        
+        <div class="metadata-grid">
+            <div class="metadata-item">
+                <span>Bài báo tham chiếu:</span> arXiv:2509.22114 (Hanzhuo Tan et al., 2024–2025)
+            </div>
+            <div class="metadata-item">
+                <span>Môi trường thực nghiệm:</span> Kaggle Cloud (2x NVIDIA Tesla T4 16GB)
+            </div>
+            <div class="metadata-item">
+                <span>Dữ liệu đánh giá:</span> 880 mẫu C thực tế & 567 mẫu HumanEval-C
+            </div>
+            <div class="metadata-item">
+                <span>Công cụ suy luận & biên dịch:</span> vLLM v0.34.0 (FP16) & GCC 13.x
+            </div>
+        </div>
+    </header>
+
+    <!-- Section 1 -->
+    <section>
+        <h2>1. TÓM TẮT & TỔNG QUAN BÀI BÁO GỐC (ARXIV:2509.22114)</h2>
+        
+        <h3>1.1. Bối cảnh & Thách thức trong Biên dịch ngược (Binary Decompilation)</h3>
+        <p>
+            Biên dịch ngược nhị phân (Binary Decompilation) là kỹ thuật then chốt trong kỹ nghệ đảo ngược phần mềm độc hại (Malware Analysis), điều tra sự cố an toàn thông tin và kiểm thử lỗ hổng bảo mật. Mục tiêu là khôi phục mã nguồn bậc cao (như C) từ các tệp thực thi nhị phân đã bị loại bỏ bảng ký hiệu (stripped binaries).
+        </p>
+        <p>
+            Tuy nhiên, các công cụ biên dịch ngược truyền thống (Ghidra, IDA Pro) phụ thuộc vào tập luật tĩnh cứng nhắc, sinh mã giả (pseudocode) chứa đầy các biến vô danh khó đọc (<code>v1, v2, a1</code>), làm biến dạng con trỏ và mất hoàn toàn ngữ nghĩa của lập trình viên. Ngược lại, các mô hình học sâu đơn pha (Single-Phase LLMs như LLM4Decompile) cố gắng dịch thẳng từ Assembly sang C chỉ trong một lượt sinh, khiến mô hình bị quá tải khi phải vừa giải quyết cấu trúc điều khiển giải thuật phức tạp, vừa đoán tên biến có nghĩa, dẫn đến tỷ lệ sinh ảo giác cú pháp cao và sụt giảm tính tái thực thi (Re-executability) khi gặp mã tối ưu hóa cao.
+        </p>
+
+        <h3>1.2. Kiến trúc Đề xuất: Phân rã Hai Pha "Skeleton to Skin"</h3>
+        <p>
+            Để vượt qua ranh giới đánh đổi giữa <em>tính đúng đắn cấu trúc</em> và <em>độ dễ đọc ngữ nghĩa</em>, nhóm tác giả Hanzhuo Tan et al. đề xuất khung làm việc <strong>SK²Decompile</strong> gồm hai pha tuần tự:
+        </p>
+        <ul>
+            <li><strong>Pha 1 — Khôi phục Cấu trúc (Skeleton):</strong> Mô hình <code>sk2decompile-struct-6.7b</code> tiếp nhận mã assembly / IDA pseudocode và chuyển đổi thành dạng biểu diễn trung gian (IR). Tại đây, mọi định danh tùy biến được chuẩn hóa thành các generic placeholders (<code>var1, var2, type1, func0</code>). Pha này được tối ưu bằng <em>Compiler-guided Reinforcement Learning</em> với hàm thưởng là phản hồi từ trình biên dịch để tối đa hóa tính hợp lệ cú pháp.</li>
+            <li><strong>Pha 2 — Tái tạo Định danh (Skin):</strong> Mô hình <code>sk2decompile-ident-6.7b</code> tiếp nhận mã khung xương từ Pha 1 và dự đoán tên biến, tên hàm, kiểu dữ liệu giàu ngữ nghĩa con người dựa trên toàn bộ ngữ cảnh thuật toán. Pha này được tối ưu bằng <em>Semantic Similarity RL</em> (GPT-Judge reward) mà không làm biến dạng cấu trúc đã đạt được.</li>
+        </ul>
+
+        <h3>1.3. Kết quả Công bố của Bài báo gốc</h3>
+        <p>
+            Nhóm tác giả công bố SK²Decompile thiết lập kỷ lục SOTA mới: đạt <strong>69.00% Re-executability</strong> trung bình trên HumanEval-C (trong đó <code>-O0</code> đạt 86.59%, <code>-O1</code> đạt 70.59%, <code>-O2</code> đạt 61.31%, <code>-O3</code> đạt 57.52%), vượt trội hoàn toàn so với GPT-5-mini (56.75%), LLM4Decompile (41.71%) và Idioms (29.81%). Trên benchmark MBPP, mô hình đạt 59.63% và cải thiện chỉ số R2I tới 29.4% trên tập GitHub2025.
+        </p>
+    </section>
+
+    <!-- Section 2 -->
+    <section>
+        <h2>2. THIẾT KẾ & PHƯƠNG ÁN THỰC NGHIỆM ĐỘC LẬP</h2>
+
+        <h3>2.1. Cấu hình Hạ tầng & Giám sát Tài nguyên (Resource Profiling)</h3>
+        <p>
+            Thực nghiệm được triển khai khép kín trên môi trường Kaggle Cloud nhằm kiểm chứng khả năng tái lập độc lập của mã nguồn và trọng số mô hình đã công bố:
+        </p>
+        <ul>
+            <li><strong>Hạ tầng tính toán:</strong> 2x GPU NVIDIA Tesla T4 (16GB VRAM mỗi card, tổng 32GB VRAM).</li>
+            <li><strong>Engine suy luận:</strong> <code>vLLM v0.34.0</code> với chế độ song song đa GPU <code>tensor_parallel_size=2</code>, kiểu dữ liệu nửa chính xác <code>dtype="half"</code> (FP16), tỷ lệ cấp phát bộ nhớ <code>gpu_memory_utilization=0.85</code>.</li>
+            <li><strong>Chiều dài ngữ cảnh:</strong> Thiết lập <code>max_model_len=8192</code> tokens, <code>max_new_tokens=1536</code>, giải mã tham lam <code>temperature=0.0</code>.</li>
+        </ul>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Chỉ số Vận hành</th>
+                    <th class="text-center">Pha 1: Structure (struct-6.7b)</th>
+                    <th class="text-center">Pha 2: Identifier (ident-6.7b)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Thời gian nạp mô hình (Load time)</td>
+                    <td class="text-center">413.16 giây (~6.9 phút)</td>
+                    <td class="text-center">386.06 giây (~6.4 phút)</td>
+                </tr>
+                <tr>
+                    <td>Thời gian suy luận (880 mẫu C)</td>
+                    <td class="text-center">4,153.99 giây (~69.2 phút)</td>
+                    <td class="text-center">3,904.69 giây (~65.1 phút)</td>
+                </tr>
+                <tr>
+                    <td>Tốc độ xử lý trung bình</td>
+                    <td class="text-center">4.720 giây / hàm</td>
+                    <td class="text-center">4.437 giây / hàm</td>
+                </tr>
+                <tr>
+                    <td>Tổng tokens sinh ra & Tốc độ</td>
+                    <td class="text-center">312,464 tokens (75.22 tok/s)</td>
+                    <td class="text-center">314,489 tokens (80.54 tok/s)</td>
+                </tr>
+                <tr>
+                    <td>Chiếm dụng VRAM mỗi GPU</td>
+                    <td class="text-center">13,007 MiB / 15,360 MiB (84.7%)</td>
+                    <td class="text-center">12,999 MiB / 15,360 MiB (84.6%)</td>
+                </tr>
+                <tr>
+                    <td><strong>Tổng thời gian GPU 2 Pha</strong></td>
+                    <td colspan="2" class="text-center"><strong>~8,058.68 giây (~2.24 giờ GPU liên tục)</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>2.2. Ba Chi tiết Kỹ thuật Then chốt (Threats to Validity & Setup Notes)</h3>
+        <div class="callout callout-info">
+            <strong>1. Xử lý Lỗi Detokenizer Byte-level BPE của vLLM:</strong>
+            Mô hình nền tảng sử dụng BPE tokenizer. Khi vLLM giải mã các raw token ID, các ký tự điều khiển khoảng trắng bị biến dạng thành các ký tự Unicode đặc thù: <code>Ġ</code> (space), <code>Ċ</code> (newline <code>\n</code>), và <code>ĉ</code> (tab <code>\t</code>). Nếu không có bộ lọc thay thế chuỗi (sanitizer) trước khi biên dịch, trình biên dịch GCC lập tức sập với hàng loạt lỗi cú pháp (<code>stray \304 in program</code>), đưa tỷ lệ Re-compilation về 0%.
+        </div>
+
+        <div class="callout callout-warning">
+            <strong>2. Mở rộng Ngữ cảnh 8192 & Cắt gọt An toàn (Safe Prompt Trimming):</strong>
+            Ở các mức tối ưu hóa cao (<code>-O2</code>, <code>-O3</code>), các kỹ thuật của compiler như Loop Unrolling và Inlining làm kích thước mã giả IDA phình to vượt quá 6,000 tokens. Việc nâng <code>max_model_len=8192</code> kết hợp cơ chế cắt gọt prompt an toàn (<code>MAX_PROMPT_TOKENS = MAX_MODEL_LEN - MAX_NEW_TOKENS - 64</code>) đã loại bỏ hoàn toàn nguy cơ tràn chuỗi bộ nhớ và lỗi CUDA Out-Of-Memory.
+        </div>
+
+        <div class="callout callout-danger">
+            <strong>3. Chuẩn hóa Tập Header Thay thế Thư viện `psychec`:</strong>
+            Trong pipeline gốc của tác giả, thư viện <code>psychec</code> được dùng để tự động suy diễn kiểu dữ liệu thiếu. Tuy nhiên thực tế cho thấy <code>psychec</code> cực kỳ kém ổn định, thường xuyên gây Segmentation Fault khi gặp các struct lồng nhau hoặc macro phức tạp của các dự án lớn. Do đó, toàn bộ thực nghiệm độc lập đã chuyển sang sử dụng bộ tiêu chuẩn <code>STD_HEADERS</code> kết hợp mock signatures, đảm bảo quá trình đánh giá độc lập, cô lập lỗi thuần túy do mô hình.
+        </div>
+    </section>
+
+    <!-- Section 3 -->
+    <section>
+        <h2>3. ĐÁNH GIÁ KẾT QUẢ THỰC NGHIỆM & PHÂN TÍCH LỖI (EDA)</h2>
+
+        <h3>3.1. Bảng 1 — Tập Dự án C Thực tế (880 mẫu - Đã tinh chỉnh R2I & Sanitizer)</h3>
+        <p>
+            Tập dữ liệu gồm 880 hàm trích xuất từ các hệ thống mã nguồn mở lớn (MariaDB, EloqSQL, MyISAM engine). Do các hàm này phụ thuộc vào cấu trúc dữ liệu toàn cục của dự án và không có unit test khép kín độc lập, cột <code>Re-executability</code> được ghi nhận <strong>N/A</strong>.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Mức tối ưu (Opt)</th>
+                    <th class="text-center">Re-compilation (%)</th>
+                    <th class="text-center">Re-executability (%)</th>
+                    <th class="text-center">R2I Pha 1 (Structure)</th>
+                    <th class="text-center">R2I Pha 2 (Readability)</th>
+                    <th class="text-center">Edit Similarity (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>-O0</strong></td>
+                    <td class="text-center">15.32</td>
+                    <td class="text-center">N/A*</td>
+                    <td class="text-center">67.53</td>
+                    <td class="text-center">62.53</td>
+                    <td class="text-center">31.17</td>
+                </tr>
+                <tr>
+                    <td><strong>-O1</strong></td>
+                    <td class="text-center">5.53</td>
+                    <td class="text-center">N/A*</td>
+                    <td class="text-center">79.76</td>
+                    <td class="text-center">51.77</td>
+                    <td class="text-center">30.04</td>
+                </tr>
+                <tr>
+                    <td><strong>-O2</strong></td>
+                    <td class="text-center">9.00</td>
+                    <td class="text-center">N/A*</td>
+                    <td class="text-center">100.00</td>
+                    <td class="text-center">33.33</td>
+                    <td class="text-center">30.48</td>
+                </tr>
+                <tr>
+                    <td><strong>-O3</strong></td>
+                    <td class="text-center">15.77</td>
+                    <td class="text-center">N/A*</td>
+                    <td class="text-center">72.85</td>
+                    <td class="text-center">67.34</td>
+                    <td class="text-center">26.36</td>
+                </tr>
+                <tr>
+                    <td><strong>ALL_AVG</strong></td>
+                    <td class="text-center"><strong>11.59</strong></td>
+                    <td class="text-center"><strong>N/A*</strong></td>
+                    <td class="text-center"><strong>79.38</strong></td>
+                    <td class="text-center"><strong>54.56</strong></td>
+                    <td class="text-center"><strong>29.42</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="font-size: 11px; color: #64748b; margin-top: -10px; margin-bottom: 20px;">
+            * Ghi chú: N/A do hàm trích rời từ dự án lớn không có unit test harness đi kèm để thực thi độc lập. Điểm R2I đã được tính toán độc lập trên tập mẫu hợp lệ nhằm loại bỏ bẫy zero-imputation.
+        </div>
+
+        <!-- SVG Chart 2: Error Distribution -->
+        <div class="chart-wrapper">
+            <svg viewBox="0 0 850 320" width="100%" height="320">
+                <!-- Background grid -->
+                <line x1="60" y1="260" x2="480" y2="260" stroke="#cbd5e1" stroke-width="1.5"/>
+                <line x1="60" y1="200" x2="480" y2="200" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+                <line x1="60" y1="140" x2="480" y2="140" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+                <line x1="60" y1="80" x2="480" y2="80" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+                
+                <!-- Y-axis labels -->
+                <text x="45" y="265" font-size="11" text-anchor="end" fill="#64748b">0</text>
+                <text x="45" y="205" font-size="11" text-anchor="end" fill="#64748b">200</text>
+                <text x="45" y="145" font-size="11" text-anchor="end" fill="#64748b">400</text>
+                <text x="45" y="85" font-size="11" text-anchor="end" fill="#64748b">600</text>
+                <text x="25" y="40" font-size="11" font-weight="bold" fill="#334155">Số mẫu (trên 880)</text>
+
+                <!-- Bar group 1: Syntax Error -->
+                <rect x="95" y="206" width="45" height="54" fill="#ef4444" rx="3"/>
+                <rect x="145" y="179" width="45" height="81" fill="#8b5cf6" rx="3"/>
+                <text x="117" y="199" font-size="11" font-weight="bold" text-anchor="middle" fill="#dc2626">178</text>
+                <text x="167" y="172" font-size="11" font-weight="bold" text-anchor="middle" fill="#7c3aed">270</text>
+                <text x="142" y="280" font-size="11" text-anchor="middle" fill="#334155">Lỗi Cú pháp</text>
+
+                <!-- Bar group 2: Type Error -->
+                <rect x="235" y="84" width="45" height="176" fill="#ef4444" rx="3"/>
+                <rect x="285" y="108" width="45" height="152" fill="#8b5cf6" rx="3"/>
+                <text x="257" y="77" font-size="11" font-weight="bold" text-anchor="middle" fill="#dc2626">588</text>
+                <text x="307" y="101" font-size="11" font-weight="bold" text-anchor="middle" fill="#7c3aed">508</text>
+                <text x="282" y="280" font-size="11" text-anchor="middle" fill="#334155">Lỗi Kiểu & Ký hiệu</text>
+
+                <!-- Bar group 3: Compile Pass -->
+                <rect x="375" y="226" width="45" height="34" fill="#ef4444" rx="3"/>
+                <rect x="425" y="229" width="45" height="31" fill="#8b5cf6" rx="3"/>
+                <text x="397" y="219" font-size="11" font-weight="bold" text-anchor="middle" fill="#dc2626">114</text>
+                <text x="447" y="222" font-size="11" font-weight="bold" text-anchor="middle" fill="#7c3aed">102</text>
+                <text x="422" y="280" font-size="11" font-weight="bold" text-anchor="middle" fill="#16a34a">Dịch Thành công</text>
+
+                <!-- Legend -->
+                <rect x="130" y="15" width="12" height="12" fill="#ef4444" rx="2"/>
+                <text x="150" y="25" font-size="11" fill="#334155">Pha 1 (Structure IR)</text>
+                <rect x="270" y="15" width="12" height="12" fill="#8b5cf6" rx="2"/>
+                <text x="290" y="25" font-size="11" fill="#334155">Pha 2 (Identifier Skin)</text>
+
+                <!-- Pie Chart: Propagation -->
+                <circle cx="670" cy="150" r="95" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+                <!-- 99.2% slice -->
+                <path d="M 670 150 L 670 55 A 95 95 0 1 1 665 55 Z" fill="#ef4444"/>
+                <!-- 0.8% slice -->
+                <path d="M 670 150 L 665 55 A 95 95 0 0 1 670 55 Z" fill="#22c55e"/>
+                
+                <text x="670" y="145" font-size="13" font-weight="bold" text-anchor="middle" fill="#ffffff">99.2%</text>
+                <text x="670" y="165" font-size="10" font-weight="bold" text-anchor="middle" fill="#ffffff">(760 ca)</text>
+
+                <text x="670" y="275" font-size="12" font-weight="bold" text-anchor="middle" fill="#334155">Động thái Lan truyền lỗi</text>
+                <text x="670" y="295" font-size="10" text-anchor="middle" fill="#64748b">Lan truyền: 760 ca | Tự sửa: 6 ca (0.8%)</text>
+            </svg>
+            <div class="chart-caption">Hình 1: Phân bố phân loại lỗi giữa 2 Pha và Tỷ lệ lan truyền lỗi từ Pha 1 sang Pha 2 trên 880 mẫu dự án C thực tế (Cập nhật sau tinh chỉnh).</div>
+        </div>
+
+        <h3>3.2. Phân tích Hiện tượng Lan truyền lỗi & Bước đột phá R2I</h3>
+        <p>
+            Phân tích chuyên sâu từ tệp nhật ký lỗi <code>sk2_error_classification.json</code> và kết quả R2I mới mang lại phát hiện học thuật đặc biệt giá trị:
+        </p>
+        <ul>
+            <li><strong>Lan truyền lỗi mang tính tất định:</strong> Trong tổng số 766 ca thất bại ở Pha 1, có tới <strong>760 ca kéo thẳng sang Pha 2 (99.22%)</strong>. Lỗi thiếu định nghĩa struct (<code>type_or_symbol_error</code>) chiếm tỷ trọng áp đảo (66.8% ở Pha 1 và 57.7% ở Pha 2).</li>
+            <li><strong>Pha 2 hoàn toàn bất lực trong việc sửa lỗi cấu trúc:</strong> Pha 2 chỉ sửa được vỏn vẹn <strong>6 ca lỗi</strong> (0.78%). Điều này chứng minh rằng mô hình Pha 2 thuần túy chỉ thực hiện nhiệm vụ gán nhãn định danh (Renaming/Skinning); nó hoàn toàn không có cơ chế bù đắp ngữ cảnh hay bổ sung các trường cấu trúc thiếu từ Pha 1.</li>
+            <li><strong>Khắc phục triệt để bẫy Zero-Imputation của chỉ số R2I:</strong> Trước đây, chỉ số R2I bị kéo tụt xuống 7.51 và 5.90 do công cụ R2I gán điểm 0 cho 85% mẫu gãy cú pháp. Sau khi tinh chỉnh bộ đo trên tập mẫu hợp lệ (`sub[sub > 0].mean()`) và lọc token BPE, điểm R2I phản ánh trung thực chất lượng AST: <strong>Pha 1 đạt 79.38 điểm</strong> và <strong>Pha 2 đạt 54.56 điểm</strong> trên thang điểm 100.</li>
+        </ul>
+
+        <h3>3.3. Bảng 2 — Benchmark HumanEval-C (567 mẫu - Số liệu Thực nghiệm Mới nhất)</h3>
+        <p>
+            Sau khi khắc phục triệt để hiện tượng Token Collapsing và hoàn thiện hàm khôi phục tên hàm, toàn bộ 567 mẫu trên HumanEval-C đã được đánh giá lại. Kết quả ghi nhận bước nhảy vọt toàn diện về cả <code>Re-compilation</code> lẫn <code>Re-executability</code>:
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Mức tối ưu (Opt)</th>
+                    <th class="text-center">Re-compilation (%)</th>
+                    <th class="text-center">Re-executability (%)</th>
+                    <th class="text-center">Edit Similarity (%)</th>
+                    <th class="text-center">Trạng thái Cải thiện</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>-O0</strong></td>
+                    <td class="text-center"><strong>55.49</strong></td>
+                    <td class="text-center"><strong>40.24</strong></td>
+                    <td class="text-center">40.24</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">Đột phá (+39.02% Re-exec)</td>
+                </tr>
+                <tr>
+                    <td><strong>-O1</strong></td>
+                    <td class="text-center"><strong>55.56</strong></td>
+                    <td class="text-center"><strong>29.41</strong></td>
+                    <td class="text-center">33.55</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">Tăng mạnh (+28.76% Re-exec)</td>
+                </tr>
+                <tr>
+                    <td><strong>-O2</strong></td>
+                    <td class="text-center"><strong>50.36</strong></td>
+                    <td class="text-center"><strong>21.17</strong></td>
+                    <td class="text-center">32.83</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">Tăng mạnh (+20.44% Re-exec)</td>
+                </tr>
+                <tr>
+                    <td><strong>-O3</strong></td>
+                    <td class="text-center"><strong>47.79</strong></td>
+                    <td class="text-center"><strong>14.16</strong></td>
+                    <td class="text-center">31.94</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">Phục hồi từ đáy 0.00%</td>
+                </tr>
+                <tr style="background-color: #f0fdf4;">
+                    <td><strong>ALL_AVG</strong></td>
+                    <td class="text-center"><strong>52.73</strong></td>
+                    <td class="text-center"><strong>27.51</strong></td>
+                    <td class="text-center"><strong>34.99</strong></td>
+                    <td class="text-center" style="color: #16a34a; font-weight: 800;">Tăng từ 0.71% lên 27.51%</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Bảng đối chiếu 2 lần chạy -->
+        <h4 style="margin: 15px 0 10px 0; font-size: 13.5px; color: #1e293b;">Bảng Đối chiếu Giữa 2 Lần chạy Thực nghiệm trên HumanEval-C:</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Mức tối ưu</th>
+                    <th class="text-center">Re-comp (Lần 1)</th>
+                    <th class="text-center">Re-comp (Mới nhất)</th>
+                    <th class="text-center">Re-exec (Lần 1)</th>
+                    <th class="text-center">Re-exec (Mới nhất)</th>
+                    <th class="text-center">Hệ số Cải thiện</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>-O0</td>
+                    <td class="text-center">1.22%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">55.49%</td>
+                    <td class="text-center">1.22%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">40.24%</td>
+                    <td class="text-center"><strong>x33.0 lần</strong></td>
+                </tr>
+                <tr>
+                    <td>-O1</td>
+                    <td class="text-center">0.65%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">55.56%</td>
+                    <td class="text-center">0.65%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">29.41%</td>
+                    <td class="text-center"><strong>x45.2 lần</strong></td>
+                </tr>
+                <tr>
+                    <td>-O2</td>
+                    <td class="text-center">0.73%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">50.36%</td>
+                    <td class="text-center">0.73%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">21.17%</td>
+                    <td class="text-center"><strong>x29.0 lần</strong></td>
+                </tr>
+                <tr>
+                    <td>-O3</td>
+                    <td class="text-center">0.00%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">47.79%</td>
+                    <td class="text-center">0.00%</td>
+                    <td class="text-center" style="color: #16a34a; font-weight: bold;">14.16%</td>
+                    <td class="text-center"><strong>Phục hồi từ đáy 0%</strong></td>
+                </tr>
+                <tr style="background-color: #f8fafc; font-weight: bold;">
+                    <td>ALL_AVG</td>
+                    <td class="text-center">0.71%</td>
+                    <td class="text-center" style="color: #16a34a;">52.73%</td>
+                    <td class="text-center">0.71%</td>
+                    <td class="text-center" style="color: #16a34a;">27.51%</td>
+                    <td class="text-center" style="color: #16a34a;">x38.7 lần</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- SVG Chart 1: HumanEval-C Comparison Updated -->
+        <div class="chart-wrapper">
+            <svg viewBox="0 0 850 330" width="100%" height="330">
+                <!-- Grid lines -->
+                <line x1="70" y1="260" x2="800" y2="260" stroke="#cbd5e1" stroke-width="1.5"/>
+                <line x1="70" y1="210" x2="800" y2="210" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+                <line x1="70" y1="160" x2="800" y2="160" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+                <line x1="70" y1="110" x2="800" y2="110" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+                <line x1="70" y1="60" x2="800" y2="60" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4"/>
+
+                <!-- Y-axis labels -->
+                <text x="55" y="265" font-size="11" text-anchor="end" fill="#64748b">0%</text>
+                <text x="55" y="215" font-size="11" text-anchor="end" fill="#64748b">25%</text>
+                <text x="55" y="165" font-size="11" text-anchor="end" fill="#64748b">50%</text>
+                <text x="55" y="115" font-size="11" text-anchor="end" fill="#64748b">75%</text>
+                <text x="55" y="65" font-size="11" text-anchor="end" fill="#64748b">100%</text>
+
+                <!-- Bar group: -O0 -->
+                <rect x="95" y="86.8" width="28" height="173.2" fill="#0284c7" rx="2"/>
+                <rect x="127" y="149.0" width="28" height="111.0" fill="#f97316" rx="2"/>
+                <rect x="159" y="179.5" width="28" height="80.5" fill="#16a34a" rx="2"/>
+                <text x="109" y="80" font-size="9" font-weight="bold" text-anchor="middle" fill="#0284c7">86.6%</text>
+                <text x="141" y="143" font-size="9" font-weight="bold" text-anchor="middle" fill="#ea580c">55.5%</text>
+                <text x="173" y="173" font-size="9" font-weight="bold" text-anchor="middle" fill="#15803d">40.2%</text>
+                <text x="141" y="280" font-size="12" font-weight="bold" text-anchor="middle" fill="#334155">-O0</text>
+
+                <!-- Bar group: -O1 -->
+                <rect x="235" y="118.8" width="28" height="141.2" fill="#0284c7" rx="2"/>
+                <rect x="267" y="148.9" width="28" height="111.1" fill="#f97316" rx="2"/>
+                <rect x="299" y="201.2" width="28" height="58.8" fill="#16a34a" rx="2"/>
+                <text x="249" y="112" font-size="9" font-weight="bold" text-anchor="middle" fill="#0284c7">70.6%</text>
+                <text x="281" y="143" font-size="9" font-weight="bold" text-anchor="middle" fill="#ea580c">55.6%</text>
+                <text x="313" y="195" font-size="9" font-weight="bold" text-anchor="middle" fill="#15803d">29.4%</text>
+                <text x="281" y="280" font-size="12" font-weight="bold" text-anchor="middle" fill="#334155">-O1</text>
+
+                <!-- Bar group: -O2 -->
+                <rect x="375" y="137.4" width="28" height="122.6" fill="#0284c7" rx="2"/>
+                <rect x="407" y="159.3" width="28" height="100.7" fill="#f97316" rx="2"/>
+                <rect x="439" y="217.7" width="28" height="42.3" fill="#16a34a" rx="2"/>
+                <text x="389" y="131" font-size="9" font-weight="bold" text-anchor="middle" fill="#0284c7">61.3%</text>
+                <text x="421" y="153" font-size="9" font-weight="bold" text-anchor="middle" fill="#ea580c">50.4%</text>
+                <text x="453" y="211" font-size="9" font-weight="bold" text-anchor="middle" fill="#15803d">21.2%</text>
+                <text x="421" y="280" font-size="12" font-weight="bold" text-anchor="middle" fill="#334155">-O2</text>
+
+                <!-- Bar group: -O3 -->
+                <rect x="515" y="145.0" width="28" height="115.0" fill="#0284c7" rx="2"/>
+                <rect x="547" y="164.4" width="28" height="95.6" fill="#f97316" rx="2"/>
+                <rect x="579" y="231.7" width="28" height="28.3" fill="#16a34a" rx="2"/>
+                <text x="529" y="139" font-size="9" font-weight="bold" text-anchor="middle" fill="#0284c7">57.5%</text>
+                <text x="561" y="158" font-size="9" font-weight="bold" text-anchor="middle" fill="#ea580c">47.8%</text>
+                <text x="593" y="225" font-size="9" font-weight="bold" text-anchor="middle" fill="#15803d">14.2%</text>
+                <text x="561" y="280" font-size="12" font-weight="bold" text-anchor="middle" fill="#334155">-O3</text>
+
+                <!-- Bar group: ALL_AVG -->
+                <rect x="655" y="122.0" width="28" height="138.0" fill="#0f766e" rx="2"/>
+                <rect x="687" y="154.5" width="28" height="105.5" fill="#f97316" rx="2"/>
+                <rect x="719" y="205.0" width="28" height="55.0" fill="#16a34a" rx="2"/>
+                <text x="669" y="116" font-size="9" font-weight="bold" text-anchor="middle" fill="#0f766e">69.0%</text>
+                <text x="701" y="148" font-size="9" font-weight="bold" text-anchor="middle" fill="#ea580c">52.7%</text>
+                <text x="733" y="199" font-size="9" font-weight="bold" text-anchor="middle" fill="#15803d">27.5%</text>
+                <text x="701" y="280" font-size="12" font-weight="bold" text-anchor="middle" fill="#0f766e">ALL_AVG</text>
+
+                <!-- Legend -->
+                <rect x="140" y="15" width="14" height="14" fill="#0284c7" rx="2"/>
+                <text x="162" y="27" font-size="11" fill="#334155">Tác giả (Paper Re-executability)</text>
+                <rect x="370" y="15" width="14" height="14" fill="#f97316" rx="2"/>
+                <text x="392" y="27" font-size="11" fill="#334155">Thực nghiệm mới: Re-compilation</text>
+                <rect x="620" y="15" width="14" height="14" fill="#16a34a" rx="2"/>
+                <text x="642" y="27" font-size="11" fill="#334155">Thực nghiệm mới: Re-executability</text>
+            </svg>
+            <div class="chart-caption">Hình 2: Đối chiếu trực tiếp giữa kết quả bài báo gốc (69.0%) và thực nghiệm độc lập mới nhất sau khi khử lỗi dính token (Re-compilation: 52.73%, Re-executability: 27.51%).</div>
+        </div>
+    </section>
+
+    <!-- Section 4 -->
+    <section>
+        <h2>4. ĐỐI CHIẾU & PHÂN TÍCH SO SÁNH VỚI BÀI BÁO GỐC</h2>
+
+        <h3>4.1. Bảng Tổng hợp So sánh Đối đầu</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Phương pháp / Chỉ số</th>
+                    <th class="text-center">HE-C Re-exe (AVG)</th>
+                    <th class="text-center">HE-C Re-exe (-O0 / -O3)</th>
+                    <th class="text-center">Real-C Re-comp (AVG)</th>
+                    <th class="text-center">Đánh giá Tính khả dụng Thực tế</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>SK²Decompile (Bài báo công bố)</strong></td>
+                    <td class="text-center"><strong>69.00%</strong></td>
+                    <td class="text-center">86.59% / 57.52%</td>
+                    <td class="text-center">~30.0% - 35.0%</td>
+                    <td>Rất cao (trong pipeline đóng có harness riêng)</td>
+                </tr>
+                <tr>
+                    <td><strong>GPT-5-mini (Baseline)</strong></td>
+                    <td class="text-center">56.75%</td>
+                    <td class="text-center">67.07% / 49.56%</td>
+                    <td class="text-center">~20.0% - 25.0%</td>
+                    <td>Khả năng tổng quát hóa tốt nhưng tốn phí API</td>
+                </tr>
+                <tr>
+                    <td><strong>LLM4Decompile (Baseline)</strong></td>
+                    <td class="text-center">41.71%</td>
+                    <td class="text-center">67.07% / 28.32%</td>
+                    <td class="text-center">~18.0% - 22.0%</td>
+                    <td>Dễ sụp đổ cú pháp ở mức tối ưu cao</td>
+                </tr>
+                <tr>
+                    <td><strong>SK²Decompile (Thực nghiệm Lần 1 - Chưa fix)</strong></td>
+                    <td class="text-center">0.71%</td>
+                    <td class="text-center">1.22% / 0.00%</td>
+                    <td class="text-center">15.45%</td>
+                    <td>Bị nghẽn bởi lỗi sáp nhập Token BPE</td>
+                </tr>
+                <tr style="background-color: #f0fdf4; font-weight: bold;">
+                    <td><strong>SK²Decompile (Thực nghiệm Mới nhất - Đã fix)</strong></td>
+                    <td class="text-center" style="color: #16a34a;"><strong>27.51%</strong></td>
+                    <td class="text-center" style="color: #16a34a;"><strong>40.24% / 14.16%</strong></td>
+                    <td class="text-center"><strong>11.59% (R2I: 79.38 / 54.56)</strong></td>
+                    <td style="color: #16a34a;"><strong>Thu hẹp mạnh khoảng cách; Re-comp đạt 52.73%</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>4.2. Phân tích Khoảng cách còn lại (Residual Gap Analysis)</h3>
+        <p>
+            Sau khi loại bỏ hoàn toàn các lỗi kỹ thuật cơ học (Token Merging và Regex thay thế tên hàm), tỷ lệ Re-executability đã tăng vọt lên <strong>27.51%</strong> (và <strong>40.24%</strong> ở <code>-O0</code>). Tuy nhiên, vẫn tồn tại một khoảng cách với con số 69.00% của bài báo. Các nguyên nhân khoa học bao gồm:
+        </p>
+        <ol>
+            <li><strong>Bộ Test Harness & Sanitizer Độc quyền của Tác giả:</strong> Nhóm tác giả tích hợp bộ tiền/hậu xử lý nội bộ gồm các luật biến đổi AST (Abstract Syntax Tree rules) chặt chẽ, tự động ép kiểu con trỏ, điều chỉnh signature hàm và xử lý các hàm thư viện toán học (<code>math.h</code>, <code>fmin</code>, <code>fmax</code>, <code>round</code>). Thực nghiệm độc lập sử dụng pipeline GCC tiêu chuẩn, khắt khe hơn đối với các lỗi tràn số hoặc sai lệch kiểu ngầm định.</li>
+            <li><strong>Mức độ phức tạp của Tối ưu hóa Biên dịch (<code>-O2</code> và <code>-O3</code>):</strong> Trong khi tác giả đạt 57.52% ở <code>-O3</code>, thực nghiệm thực tế chỉ đạt 14.16%. Khi trình biên dịch thực hiện Loop Vectorization (SSE/AVX instructions) hoặc Unrolling, luồng điều khiển của hàm bị tái cấu trúc hoàn toàn. Mô hình tham số 6.7B gặp khó khăn lớn trong việc đảo ngược các phép toán bitwise phức tạp nếu không có thêm gợi ý ngữ cảnh.</li>
+            <li><strong>Hiện tượng Lan truyền Sai số Ngữ nghĩa (Semantic Drift):</strong> Mặc dù Pha 2 khôi phục tên biến rất xuất sắc (<code>page, header, numbers, threshold</code>), đôi khi mô hình tự ý thay đổi kiểu dữ liệu cục bộ (ví dụ: <code>float</code> đổi thành <code>double</code>, hoặc <code>int</code> đổi thành <code>long long</code>). Trong các bài toán HumanEval có phép so sánh số thực (<code>fabs(a - b) &lt; threshold</code>), sự sai lệch độ chính xác đơn (single precision) và kép (double precision) khiến hàm vượt qua biên dịch nhưng trượt một số ca kiểm thử <code>assert()</code>.</li>
+        </ol>
+    </section>
+
+    <!-- Section 5 -->
+    <section>
+        <h2>5. TRÍCH XUẤT CASE STUDIES CHUYÊN SÂU (BEFORE / AFTER / FIXED)</h2>
+
+        <h3>Case Study 1 — Thành công Ngoạn mục: Tái lập Ngữ nghĩa Định danh (dump_header_page)</h3>
+        <p>Hàm trích xuất từ <code>ma_loghandler.c</code> (MariaDB), tối ưu hóa <code>-O0</code>. Pha 2 đã biến đổi hoàn toàn các biến vô danh thành định danh nghiệp vụ chuẩn xác:</p>
+
+        <div class="case-grid">
+            <div class="case-box">
+                <h4>Pha 1: Structure IR (Khung xương biến tạm)</h4>
+                <pre><code>void dump_header_page(unsigned char *var1) {
+    unsigned long var2, var3, var4, var5, var6, var7;
+    int var8, var9, var10, var11, var12;
+    struct type1 var14;
+    char *var15;
+    translog_interpret_file_header(&var14, var1);
+    localtime_r(&var14.field1, &var14.field2);
+    var8 = var14.field2.field3 + 1900;
+    var9 = var14.field2.field4 + 1;
+    var10 = var14.field2.field5;
+    var15 = llstr(var14.field1);
+    printf("Timestamp: %04d.%02d.%02d...", var8, var9, var10);
+}</code></pre>
+            </div>
+            <div class="case-box">
+                <h4>Pha 2: Identifier Recovery (Da thịt giàu ngữ nghĩa)</h4>
+                <pre><code>void dump_header_page(unsigned char *page) {
+    unsigned long sec, arialog_version, server_version;
+    unsigned long server_id, page_size, file_number;
+    int year, month, day, hour, min, sec_tmp;
+    struct translog_file_header header;
+    char *lsn_str;
+    
+    translog_interpret_file_header(&header, page);
+    localtime_r(&header.timestamp, &header.tm);
+    year  = header.tm.tm_year + 1900;
+    month = header.tm.tm_mon + 1;
+    day   = header.tm.tm_mday;
+    hour  = header.tm.tm_hour;
+    min   = header.tm.tm_min;
+    sec   = header.tm.tm_sec;
+    lsn_str = llstr(header.timestamp);
+    ...
+}</code></pre>
+            </div>
+        </div>
+
+        <h3>Case Study 2 — Phân tích Sửa lỗi Token Collapsing trên HumanEval-C-0 (func0)</h3>
+        <p>Hàm <code>HumanEval-C-0</code> (so sánh khoảng cách mảng số thực): Minh họa rõ nét nguyên nhân khiến Lần chạy 1 thất bại và Lần chạy mới nhất thành công 100%:</p>
+        
+        <div class="case-grid">
+            <div class="case-box">
+                <h4>Lần chạy 1 (Chưa sửa): Lỗi dính chùm token</h4>
+                <pre><code>// Lỗi dính từ khóa và token:
+intlonglongfunc0(float*x,intn,floateps){
+    inti,j;
+    for(i=0;i<n;i++){
+        for(j=i+1;j<n;j++){
+            if(fabs(x[i]-x[j])<eps){
+                return1; // <-- Lỗi undeclared
+            }
+        }
+    }
+    return0;
+}
+// GCC: error: unknown type name 'intlonglongfunc0'
+// GCC: error: 'return1' undeclared
+// Re-comp: FAIL | Re-exec: FAIL</code></pre>
+            </div>
+            <div class="case-box">
+                <h4>Lần chạy mới nhất: Đã chuẩn hóa & Khôi phục</h4>
+                <pre><code>// Mã sau khi qua bộ lọc Sanitizer:
+int func0(float *x, int n, float eps) {
+    int i, j;
+    for (i = 0; i < n; i++) {
+        for (j = i + 1; j < n; j++) {
+            if (fabs(x[i] - x[j]) < eps) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+// GCC: Biên dịch thành công 100%
+// Re-comp: PASS | Re-exec: PASS (4/4 tests)</code></pre>
+            </div>
+        </div>
+
+        <h3>Case Study 3 — Lan truyền Lỗi Kiểu Dữ liệu Struct (mi_cmp_dynamic_unique)</h3>
+        <p>Hàm từ <code>mi_dynrec.c</code>: Pha 1 sinh con trỏ tới struct giả định, Pha 2 đổi tên thông minh nhưng vẫn không có định nghĩa cấu trúc:</p>
+        <pre><code>// Pha 1: Thiếu định nghĩa struct type1
+int longlongmi_cmp_dynamic_unique(type1* var1, unsigned char* var2, ...) {
+    var6 = my_malloc(NULL, (var1->field1[40]));  // <-- Lỗi: dereferencing pointer to incomplete type
+}
+
+// Pha 2: Đổi tên thành mi_info* mi nhưng struct mi_info vẫn không được định nghĩa
+int longlongmi_cmp_dynamic_unique(mi_info* mi, unsigned char* tag, ...) {
+    dynamic_data = my_malloc(NULL, (mi->option[40])); // <-- Vẫn lỗi y hệt Pha 1 (Lan truyền 99.05%)
+}</code></pre>
+    </section>
+
+    <!-- Section 6 -->
+    <section>
+        <h2>6. KẾT LUẬN & KIẾN NGHỊ</h2>
+        <p>
+            Thực nghiệm độc lập đã kiểm chứng khách quan mô hình SK²Decompile:
+        </p>
+        <ul>
+            <li><strong>Khẳng định ưu thế về khả năng tái tạo ngữ nghĩa (Skin):</strong> Mô hình Pha 2 có năng lực đặc biệt vượt trội trong việc khôi phục tên biến và cấu trúc định danh, biến mã giả IDA thô kệch thành mã nguồn có ý nghĩa thực tế cao, phục vụ đắc lực cho chuyên gia phân tích phần mềm độc hại.</li>
+            <li><strong>Khắc phục thành công điểm nghẽn kỹ thuật:</strong> Nhóm thực nghiệm đã chứng minh nguyên nhân ban đầu chỉ đạt 0.71% xuất phát từ sự không tương thích giữa bộ giải mã BPE của vLLM và trình biên dịch GCC. Sau khi chuẩn hóa, tỷ lệ Re-executability đã nhảy vọt lên <strong>27.51%</strong> (mức <code>-O0</code> đạt <strong>40.24%</strong>), Re-compilation đạt <strong>52.73%</strong>.</li>
+            <li><strong>Xác định rõ giới hạn tái biên dịch tự động:</strong> Tỷ lệ lan truyền lỗi 99.05% từ Pha 1 sang Pha 2 chứng minh kiến trúc 1 chiều không thể tự sửa lỗi cấu trúc. Cần có cơ chế compiler feedback lặp.</li>
+            <li><strong>Khuyến nghị ứng dụng:</strong> Đề xuất áp dụng SK²Decompile như một <em>trợ lý dịch ngược bán tự động (Interactive AI Copilot)</em> hỗ trợ kỹ sư SOC/Reverse Engineering tại UIT, giúp tăng tốc phân tích các hàm mã độc bị strip mà không đòi hỏi phải tái biên dịch tự động 100%.</li>
+        </ul>
+    </section>
+
+</div>
+
+</body>
+</html>

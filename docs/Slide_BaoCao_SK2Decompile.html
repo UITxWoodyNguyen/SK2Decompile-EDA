@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Báo Cáo Thực Nghiệm: SK²Decompile (arXiv:2509.22114)</title>
+    <style>
+        :root {
+            --bg-main: #0b1120;
+            --slide-bg: #0f172a;
+            --slide-card: #1e293b;
+            --primary: #38bdf8;
+            --primary-dark: #0284c7;
+            --secondary: #818cf8;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --code-bg: #020617;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Presentation Container */
+        .deck-container {
+            position: relative;
+            width: 92vw;
+            max-width: 1280px;
+            aspect-ratio: 16 / 9;
+            background: var(--slide-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Slide item */
+        .slide {
+            position: absolute;
+            inset: 0;
+            padding: 45px 60px;
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.05), transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(129, 140, 248, 0.05), transparent 40%),
+                        var(--slide-bg);
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 2;
+        }
+
+        /* Slide Header */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            padding-bottom: 15px;
+        }
+
+        .slide-tag {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--primary);
+            background: rgba(56, 189, 248, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .slide-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+        }
+
+        .slide-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Slide Content Area */
+        .slide-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            font-size: 14.5px;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        /* Cards & Highlights */
+        .card {
+            background: var(--slide-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px 22px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card h4 {
+            font-size: 15px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-stat {
+            text-align: center;
+            padding: 16px 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .c-primary { color: var(--primary); }
+        .c-success { color: var(--success); }
+        .c-warning { color: var(--accent); }
+        .c-danger { color: var(--danger); }
+        .c-secondary { color: var(--secondary); }
+
+        /* Tables */
+        table.slide-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: var(--slide-card);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        table.slide-table th, table.slide-table td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        table.slide-table th {
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+
+        table.slide-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.slide-table tr.highlight-row {
+            background: rgba(16, 185, 129, 0.12);
+            font-weight: bold;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+
+        /* Code snippets */
+        pre.code-box {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11.5px;
+            line-height: 1.45;
+            color: #e2e8f0;
+            overflow-x: auto;
+            max-height: 250px;
+        }
+
+        /* Bullet Points */
+        ul.slide-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul.slide-list li {
+            position: relative;
+            padding-left: 22px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        ul.slide-list li::before {
+            content: "▹";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-size: 16px;
+            line-height: 1.2;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .badge-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .badge-primary { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
+        /* Navigation Controls bar */
+        .nav-bar {
+            width: 92vw;
+            max-width: 1280px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            margin-top: 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            background: var(--slide-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 7px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary);
+            color: #ffffff;
+        }
+
+        .slide-counter {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Print styles for generating clean PDF */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                display: block;
+                padding: 0;
+            }
+            .nav-bar {
+                display: none !important;
+            }
+            .deck-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: white !important;
+                aspect-ratio: auto !important;
+            }
+            .slide {
+                position: relative !important;
+                display: flex !important;
+                opacity: 1 !important;
+                width: 100% !important;
+                height: 100vh !important;
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                padding: 40px !important;
+                background: white !important;
+                color: black !important;
+                border-bottom: 2px solid #ccc;
+            }
+            .slide-title { color: #0f172a !important; }
+            .slide-body { color: #334155 !important; }
+            .card { background: #f8fafc !important; border-color: #cbd5e1 !important; color: black !important; }
+            pre.code-box { background: #f1f5f9 !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+            table.slide-table { background: #ffffff !important; border-color: #94a3b8 !important; color: black !important; }
+            table.slide-table th { background: #e2e8f0 !important; color: black !important; }
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="deck-container" id="presentationDeck">
+
+    <!-- ==================== SLIDE 1: TITLE ==================== -->
+    <div class="slide active" id="slide-1">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+            <div class="slide-tag" style="font-size: 13px; padding: 6px 16px; margin-bottom: 15px;">Thực Nghiệm Nghiên Cứu Khoa Học</div>
+            <h1 style="font-size: 34px; font-weight: 900; line-height: 1.25; margin-bottom: 15px; max-width: 950px; color: #ffffff;">
+                ĐÁNH GIÁ THỰC NGHIỆM ĐỘC LẬP MÔ HÌNH BIÊN DỊCH NGƯỢC HAI PHA <span class="c-primary">SK²DECOMPILE</span>
+            </h1>
+            <p style="font-size: 16px; color: var(--secondary); margin-bottom: 30px; font-weight: 600;">
+                Tái lập, Kiểm chứng Độc lập & Phân tích Đối chiếu với Bài báo Gốc (arXiv:2509.22114)
+            </p>
+
+            <div style="display: flex; gap: 40px; background: rgba(30, 41, 59, 0.7); padding: 18px 35px; border-radius: 10px; border: 1px solid var(--border);">
+                <div>
+                    <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Đơn vị thực hiện</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #ffffff; margin-top: 3px;">Nhóm Nghiên cứu & Thực nghiệm UIT</div>
+                </div>
+                <div style="border-left: 1px solid var(--border); padding-left: 40px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Hạ tầng thực nghiệm</div>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--primary); margin-top: 3px;">2x NVIDIA Tesla T4 (vLLM FP16)</div>
+                </div>
+                <div style="border-left: 1px solid var(--border); padding-left: 40px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Quy mô kiểm thử</div>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--success); margin-top: 3px;">880 mẫu C Thực tế & 567 mẫu HumanEval-C</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 2: PROBLEM STATEMENT ==================== -->
+    <div class="slide" id="slide-2">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Bối cảnh & Đặt vấn đề</span>
+                <div class="slide-title">Thách Thức Nền Tảng trong Biên Dịch Ngược Nhị Phân</div>
+                <div class="slide-subtitle">Nghịch lý đánh đổi giữa tính đúng đắn cấu trúc và độ dễ đọc ngữ nghĩa</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <div class="card" style="border-left: 4px solid var(--danger);">
+                    <h4>🛑 Hạn chế của Decompiler Luật Tĩnh (IDA Pro / Ghidra)</h4>
+                    <ul class="slide-list">
+                        <li>Dựa vào luật tĩnh cứng nhắc (heuristic AST pattern matching).</li>
+                        <li>Mã giả sinh ra chứa đầy định danh vô nghĩa: <code>v1, v2, a1, sub_1169</code>.</li>
+                        <li>Ép kiểu thô bạo (<code>_QWORD, _DWORD</code>), làm biến dạng con trỏ.</li>
+                        <li><strong>Hậu quả:</strong> Tốn rất nhiều thời gian dịch ngược thủ công của kỹ sư SOC/Malware Analyst.</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--accent);">
+                    <h4>⚠️ Điểm nghẽn của LLM Đơn Pha (LLM4Decompile)</h4>
+                    <ul class="slide-list">
+                        <li>Cố gắng dịch thẳng Assembly $\rightarrow$ Mã C hoàn chỉnh trong 1 lượt (End-to-End).</li>
+                        <li><strong>Mô hình bị quá tải (Overburdened):</strong> Vừa phải khôi phục cấu trúc điều khiển giải thuật, vừa phải phán đoán tên biến có nghĩa.</li>
+                        <li>Xuất hiện ảo giác cú pháp (Syntax Hallucination).</li>
+                        <li><strong>Hậu quả:</strong> Tỷ lệ Re-executability sụt giảm nghiêm trọng ở mã tối ưu hóa cao (<code>-O2, -O3</code>).</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card" style="margin-top: 18px; background: rgba(56, 189, 248, 0.08); border-color: rgba(56, 189, 248, 0.3);">
+                <div style="font-weight: 700; color: var(--primary); font-size: 14px;">🎯 Câu hỏi nghiên cứu:</div>
+                <div style="font-size: 13.5px; margin-top: 4px;">
+                    Làm thế nào để vừa đảm bảo mã C khôi phục có thể biên dịch lại và chạy đúng (Executability), vừa khôi phục được định danh biến/hàm tự nhiên như con người viết (Readability)?
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 3: SK2DECOMPILE ARCHITECTURE ==================== -->
+    <div class="slide" id="slide-3">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Kiến trúc Đề xuất</span>
+                <div class="slide-title">SK²Decompile: Phân Rã Hai Pha "Skeleton to Skin"</div>
+                <div class="slide-subtitle">Tách rời bài toán khôi phục cấu trúc và tái tạo định danh giàu ngữ nghĩa</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2" style="align-items: center;">
+                <div class="card" style="border-top: 4px solid var(--primary);">
+                    <h4>🦴 PHA 1: Khôi Phục Cấu Trúc (Skeleton)</h4>
+                    <div style="font-size: 12px; color: var(--primary); font-weight: bold; margin-bottom: 8px;">Mô hình: sk2decompile-struct-6.7b</div>
+                    <ul class="slide-list">
+                        <li>Đầu vào: Mã giả IDA / Assembly từ stripped binary.</li>
+                        <li>Chuẩn hóa mọi định danh thành biến tạm chung: <code>var1, var2, type1, func0</code>.</li>
+                        <li><strong>Compiler-guided RL:</strong> Tối ưu hóa bằng phản hồi trực tiếp từ compiler nhằm tối đa hóa tính đúng cú pháp và CFG.</li>
+                        <li><strong>Đầu ra:</strong> Mã biểu diễn trung gian (Structure IR).</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-top: 4px solid var(--success);">
+                    <h4>✨ PHA 2: Tái Tạo Định Danh (Skin)</h4>
+                    <div style="font-size: 12px; color: var(--success); font-weight: bold; margin-bottom: 8px;">Mô hình: sk2decompile-ident-6.7b</div>
+                    <ul class="slide-list">
+                        <li>Đầu vào: Mã khung xương IR từ Pha 1.</li>
+                        <li>Dự đoán định danh nghiệp vụ giàu ngữ nghĩa: <code>numbers, buffer, len, count</code>.</li>
+                        <li><strong>Semantic Similarity RL:</strong> Tối ưu bằng hàm thưởng tương đồng ngữ nghĩa (GPT-Judge) mà không làm lệch cấu trúc.</li>
+                        <li><strong>Đầu ra:</strong> Mã C hoàn chỉnh, dễ đọc cho con người.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-stat" style="margin-top: 15px; display: flex; justify-content: space-around; align-items: center;">
+                <div>
+                    <span class="stat-label">Công bố của tác giả (HumanEval-C)</span>
+                    <div class="stat-value c-primary">69.00% <span style="font-size: 16px;">Re-exec</span></div>
+                </div>
+                <div style="border-left: 1px solid var(--border); height: 40px;"></div>
+                <div>
+                    <span class="stat-label">Vượt qua GPT-5-mini</span>
+                    <div class="stat-value c-success">+12.25%</div>
+                </div>
+                <div style="border-left: 1px solid var(--border); height: 40px;"></div>
+                <div>
+                    <span class="stat-label">Cải thiện R2I (GitHub2025)</span>
+                    <div class="stat-value c-secondary">+29.40%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 4: SETUP & PROFILING ==================== -->
+    <div class="slide" id="slide-4">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Phương án Thực nghiệm</span>
+                <div class="slide-title">Hạ Tầng Tính Toán & Giám Sát Tài Nguyên Thực Tế</div>
+                <div class="slide-subtitle">Triển khai pipeline suy luận khép kín trên môi trường Kaggle Cloud</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <table class="slide-table">
+                    <thead>
+                        <tr>
+                            <th>Thông số</th>
+                            <th class="text-center">Pha 1 (struct-6.7b)</th>
+                            <th class="text-center">Pha 2 (ident-6.7b)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Nạp mô hình (Load)</td>
+                            <td class="text-center">413.16s (~6.9m)</td>
+                            <td class="text-center">386.06s (~6.4m)</td>
+                        </tr>
+                        <tr>
+                            <td>Suy luận (880 mẫu)</td>
+                            <td class="text-center">4,153.99s (~69.2m)</td>
+                            <td class="text-center">3,904.69s (~65.1m)</td>
+                        </tr>
+                        <tr>
+                            <td>Tốc độ sinh token</td>
+                            <td class="text-center c-primary"><strong>75.22 tok/s</strong></td>
+                            <td class="text-center c-primary"><strong>80.54 tok/s</strong></td>
+                        </tr>
+                        <tr>
+                            <td>VRAM mỗi GPU</td>
+                            <td class="text-center">13,007 MiB (84.7%)</td>
+                            <td class="text-center">12,999 MiB (84.6%)</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td><strong>Tổng thời gian GPU</strong></td>
+                            <td colspan="2" class="text-center c-success"><strong>~8,058 giây (~2.24 giờ GPU liên tục)</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="card">
+                    <h4>⚙️ Cấu Hình Môi Trường Chuẩn Hóa</h4>
+                    <ul class="slide-list" style="font-size: 13.5px;">
+                        <li><strong>Phần cứng:</strong> 2x NVIDIA Tesla T4 16GB (Tổng 32GB VRAM).</li>
+                        <li><strong>Inference Engine:</strong> <code>vLLM v0.34.0</code> với <code>tensor_parallel_size=2</code>, kiểu dữ liệu <code>dtype="half"</code> (FP16).</li>
+                        <li><strong>Bộ nhớ cấp phát:</strong> <code>gpu_memory_utilization=0.85</code>.</li>
+                        <li><strong>Ngữ cảnh mở rộng:</strong> <code>max_model_len=8192</code> tokens, <code>max_new_tokens=1536</code>, giải mã tham lam <code>temperature=0.0</code>.</li>
+                        <li><strong>Compiler đánh giá:</strong> GCC 13.x (Linux x86_64).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 5: REPRODUCIBILITY NOTES ==================== -->
+    <div class="slide" id="slide-5">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Kỹ thuật Then chốt</span>
+                <div class="slide-title">Ba Chi Tiết Kỹ Thuật Đảm Bảo Khả Năng Tái Lập</div>
+                <div class="slide-subtitle">Các rào cản thực tế trong triển khai suy luận LLM biên dịch ngược</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-3">
+                <div class="card" style="border-top: 4px solid var(--danger);">
+                    <h4>1. Lỗi BPE Detokenizer</h4>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+                        vLLM giải mã ánh xạ khoảng trắng thành <code>Ġ</code>, newline thành <code>Ċ</code>, tab thành <code>ĉ</code>.
+                    </p>
+                    <div style="font-size: 12px; background: rgba(239, 68, 68, 0.15); padding: 8px; border-radius: 4px; color: #fca5a5;">
+                        <strong>Hậu quả nếu không lọc:</strong> GCC lập tức báo lỗi <code>stray \304 in program</code>, Re-compilation rơi về 0%.
+                    </div>
+                </div>
+
+                <div class="card" style="border-top: 4px solid var(--accent);">
+                    <h4>2. Ngữ Cảnh 8192 & Safe Trimming</h4>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+                        Tại mức <code>-O2/-O3</code>, loop unrolling và inlining khiến mã IDA vượt quá 6,000 tokens.
+                    </p>
+                    <div style="font-size: 12px; background: rgba(245, 158, 11, 0.15); padding: 8px; border-radius: 4px; color: #fde68a;">
+                        <strong>Giải pháp:</strong> Nâng <code>max_model_len=8192</code> kết hợp cắt gọt an toàn loại trừ hoàn toàn nguy cơ CUDA OOM.
+                    </div>
+                </div>
+
+                <div class="card" style="border-top: 4px solid var(--primary);">
+                    <h4>3. Chuẩn Hóa Header thay `psychec`</h4>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+                        Thư viện <code>psychec</code> của tác giả thường xuyên bị Segmentation Fault trên struct phức tạp.
+                    </p>
+                    <div style="font-size: 12px; background: rgba(56, 189, 248, 0.15); padding: 8px; border-radius: 4px; color: #bae6fd;">
+                        <strong>Giải pháp:</strong> Xây dựng bộ <code>STD_HEADERS</code> chuẩn kết hợp mock types giúp cô lập lỗi thuần túy do mô hình.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 6: REAL C PROJECT RESULTS ==================== -->
+    <div class="slide" id="slide-6">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Kết quả Thực nghiệm</span>
+                <div class="slide-title">Bảng 1: Đánh Giá Trên Dự Án C Thực Tế (880 Mẫu - Đã tinh chỉnh R2I)</div>
+                <div class="slide-subtitle">Trích xuất từ các hệ thống mã nguồn mở lớn (MariaDB, MySQL engines, EloqSQL)</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <div>
+                    <table class="slide-table">
+                        <thead>
+                            <tr>
+                                <th>Mức tối ưu</th>
+                                <th class="text-center">Re-comp (%)</th>
+                                <th class="text-center">Re-exec (%)</th>
+                                <th class="text-center">R2I P1 / P2</th>
+                                <th class="text-center">Edit Sim (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>-O0</strong></td>
+                                <td class="text-center">15.32</td>
+                                <td class="text-center">N/A*</td>
+                                <td class="text-center">67.53 / 62.53</td>
+                                <td class="text-center">31.17</td>
+                            </tr>
+                            <tr>
+                                <td><strong>-O1</strong></td>
+                                <td class="text-center">5.53</td>
+                                <td class="text-center">N/A*</td>
+                                <td class="text-center">79.76 / 51.77</td>
+                                <td class="text-center">30.04</td>
+                            </tr>
+                            <tr>
+                                <td><strong>-O2</strong></td>
+                                <td class="text-center">9.00</td>
+                                <td class="text-center">N/A*</td>
+                                <td class="text-center">100.00 / 33.33</td>
+                                <td class="text-center">30.48</td>
+                            </tr>
+                            <tr>
+                                <td><strong>-O3</strong></td>
+                                <td class="text-center">15.77</td>
+                                <td class="text-center">N/A*</td>
+                                <td class="text-center">72.85 / 67.34</td>
+                                <td class="text-center">26.36</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>ALL_AVG</strong></td>
+                                <td class="text-center c-primary"><strong>11.59</strong></td>
+                                <td class="text-center"><strong>N/A*</strong></td>
+                                <td class="text-center"><strong>79.38 / 54.56</strong></td>
+                                <td class="text-center"><strong>29.42</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                        * N/A: Hàm trích đơn lẻ từ dự án lớn không có unit test harness khép kín đi kèm. R2I tính trên tập hợp lệ loại bỏ zero-imputation.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>📊 Phân Loại Lỗi Biên Dịch (880 mẫu)</h4>
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                            <span>Lỗi thiếu Struct / Kiểu (Type/Symbol Error)</span>
+                            <span class="c-danger font-bold">66.82% (588 ca)</span>
+                        </div>
+                        <div style="background: rgba(239, 68, 68, 0.2); height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: var(--danger); width: 66.8%; height: 100%;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                            <span>Lỗi Cú pháp thuần túy (Syntax Error)</span>
+                            <span class="c-warning font-bold">20.23% (178 ca)</span>
+                        </div>
+                        <div style="background: rgba(245, 158, 11, 0.2); height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: var(--accent); width: 20.2%; height: 100%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                            <span>Biên dịch thành công (Compilation Pass)</span>
+                            <span class="c-success font-bold">12.95% (114 ca)</span>
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.2); height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: var(--success); width: 13.0%; height: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 7: ERROR PROPAGATION ==================== -->
+    <div class="slide" id="slide-7">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Phân tích Kiến trúc</span>
+                <div class="slide-title">Điểm Nghẽn Kiến Trúc: Lan Truyền Lỗi Tuyến Tính 1 Chiều</div>
+                <div class="slide-subtitle">Bằng chứng định lượng từ tệp nhật ký sk2_error_classification.json</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-3" style="margin-bottom: 15px;">
+                <div class="card-stat">
+                    <span class="stat-label">Lỗi kéo thẳng sang Pha 2</span>
+                    <div class="stat-value c-danger">99.22%</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">760 / 766 ca lỗi</div>
+                </div>
+                <div class="card-stat">
+                    <span class="stat-label">Pha 2 tự sửa được lỗi</span>
+                    <div class="stat-value c-success">0.78%</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Duy nhất 6 ca sửa được</div>
+                </div>
+                <div class="card-stat">
+                    <span class="stat-label">Đột phá điểm R2I AST</span>
+                    <div class="stat-value c-primary">79.38 / 54.56</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Khắc phục lỗi zero-imputation</div>
+                </div>
+            </div>
+
+            <div class="card" style="border-left: 4px solid var(--accent);">
+                <h4>🔍 Phát Hiện Khoa Học Quan Trọng:</h4>
+                <p style="font-size: 13.5px; margin: 0;">
+                    Mô hình Pha 2 (<code>sk2decompile-ident-6.7b</code>) thuần túy thực hiện chức năng <strong>đổi tên định danh (Renaming/Skinning)</strong>. Khi Pha 1 sinh thiếu struct hoặc sai cấu trúc, Pha 2 <strong>hoàn toàn không có khả năng tự sửa lỗi hay bù đắp ngữ cảnh</strong> (760/766 lỗi lan truyền). Chất lượng cú pháp của Pha 1 là ranh giới sống còn quyết định toàn bộ tính tái biên dịch của pipeline.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 8: HUMANEVAL-C BREAKTHROUGH ==================== -->
+    <div class="slide" id="slide-8">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Kết quả Đột phá</span>
+                <div class="slide-title">Bảng 2: Bước Nhảy Vọt Trên Benchmark HumanEval-C</div>
+                <div class="slide-subtitle">So sánh 2 lần chạy: Phục hồi mạnh mẽ sau khi khử lỗi dính token</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <table class="slide-table">
+                    <thead>
+                        <tr>
+                            <th>Mức Opt</th>
+                            <th class="text-center">Re-comp (Mới)</th>
+                            <th class="text-center">Re-exec (Mới)</th>
+                            <th class="text-center">Edit Sim (%)</th>
+                            <th class="text-center">Hệ số Cải thiện</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>-O0</strong></td>
+                            <td class="text-center c-success font-bold">55.49%</td>
+                            <td class="text-center c-success font-bold">40.24%</td>
+                            <td class="text-center">40.24%</td>
+                            <td class="text-center"><span class="badge badge-success">x33.0 lần</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>-O1</strong></td>
+                            <td class="text-center c-success font-bold">55.56%</td>
+                            <td class="text-center c-success font-bold">29.41%</td>
+                            <td class="text-center">33.55%</td>
+                            <td class="text-center"><span class="badge badge-success">x45.2 lần</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>-O2</strong></td>
+                            <td class="text-center c-success font-bold">50.36%</td>
+                            <td class="text-center c-success font-bold">21.17%</td>
+                            <td class="text-center">32.83%</td>
+                            <td class="text-center"><span class="badge badge-success">x29.0 lần</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>-O3</strong></td>
+                            <td class="text-center c-success font-bold">47.79%</td>
+                            <td class="text-center c-success font-bold">14.16%</td>
+                            <td class="text-center">31.94%</td>
+                            <td class="text-center"><span class="badge badge-warning">Từ đáy 0%</span></td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td><strong>ALL_AVG</strong></td>
+                            <td class="text-center c-success"><strong>52.73%</strong></td>
+                            <td class="text-center c-success"><strong>27.51%</strong></td>
+                            <td class="text-center"><strong>34.99%</strong></td>
+                            <td class="text-center"><span class="badge badge-success"><strong>x38.7 lần</strong></span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="card" style="justify-content: space-around;">
+                    <div style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                        <span class="slide-tag">Tiến triển Re-compilation</span>
+                        <div style="display: flex; align-items: baseline; gap: 15px; margin-top: 4px;">
+                            <span style="font-size: 20px; color: var(--danger); text-decoration: line-through;">0.71%</span>
+                            <span style="font-size: 24px; color: var(--text-muted);">➔</span>
+                            <span style="font-size: 32px; font-weight: 900; color: var(--success);">52.73%</span>
+                            <span class="badge badge-success" style="font-size: 13px;">+52.02%</span>
+                        </div>
+                    </div>
+                    <div style="padding-top: 10px;">
+                        <span class="slide-tag">Tiến triển Re-executability</span>
+                        <div style="display: flex; align-items: baseline; gap: 15px; margin-top: 4px;">
+                            <span style="font-size: 20px; color: var(--danger); text-decoration: line-through;">0.71%</span>
+                            <span style="font-size: 24px; color: var(--text-muted);">➔</span>
+                            <span style="font-size: 32px; font-weight: 900; color: var(--success);">27.51%</span>
+                            <span class="badge badge-success" style="font-size: 13px;">(Mức -O0: 40.24%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 9: GAP ANALYSIS ==================== -->
+    <div class="slide" id="slide-9">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Mổ Xẻ Nguyên Nhân</span>
+                <div class="slide-title">Phân Tích Khoảng Cách (Gap Analysis)</div>
+                <div class="slide-subtitle">Tại sao lần 1 bị 0.71% và nguyên nhân khoảng cách còn lại so với 69.00%</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <div class="card" style="border-left: 4px solid var(--success);">
+                    <h4>✅ Đã Khắc Phục (0.71% ➔ 27.51%)</h4>
+                    <ul class="slide-list" style="font-size: 13px;">
+                        <li><strong>Khử Token Collapsing:</strong> Tách các từ khóa bị dính: <code>intlonglongfunc0</code>, <code>return1;</code>, <code>constchar</code>, <code>elseif</code>.</li>
+                        <li><strong>Sửa hàm `restore_func_name`:</strong> Khắc phục lỗi regex cũ làm mất tên hàm <code>func0</code> khi gặp dấu C++ <code>::</code>.</li>
+                        <li><strong>Kết quả:</strong> Tỷ lệ Re-compilation lập tức đạt <strong>52.73%</strong> (đạt ~65% con số tác giả).</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--warning);">
+                    <h4>🔎 Khoảng Cách Còn Lại (27.51% vs 69.00%)</h4>
+                    <ul class="slide-list" style="font-size: 13px;">
+                        <li><strong>Harness & Sanitizer độc quyền:</strong> Tác giả sử dụng pipeline nội bộ biến đổi AST và ép kiểu toán học chặt chẽ.</li>
+                        <li><strong>Độ suy thoái theo bậc tối ưu:</strong> Re-executability giảm từ <strong>40.24%</strong> (-O0) xuống <strong>14.16%</strong> (-O3) do loop unrolling và inlining tái cấu trúc hoàn toàn đồ thị CFG.</li>
+                        <li><strong>Semantic Drift:</strong> Mô hình đôi khi đổi kiểu số thực từ <code>float</code> sang <code>double</code>, khiến phép so sánh <code>fabs()</code> trượt unit test assertions.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 10: BENCHMARK COMPARISON ==================== -->
+    <div class="slide" id="slide-10">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Đối chiếu Chuyên sâu</span>
+                <div class="slide-title">Bảng So Sánh Đối Đầu với Các Mô Hình SOTA</div>
+                <div class="slide-subtitle">Đối chiếu HumanEval-C Re-executability giữa tác giả, các baseline và thực nghiệm</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <table class="slide-table" style="font-size: 13.5px;">
+                <thead>
+                    <tr>
+                        <th>Mô hình / Phương pháp</th>
+                        <th class="text-center">HE-C Re-exec (AVG)</th>
+                        <th class="text-center">Mức -O0</th>
+                        <th class="text-center">Mức -O3</th>
+                        <th>Đánh giá Năng lực Thực tế</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SK²Decompile (Tác giả công bố)</strong></td>
+                        <td class="text-center c-primary font-bold">69.00%</td>
+                        <td class="text-center">86.59%</td>
+                        <td class="text-center">57.52%</td>
+                        <td>SOTA; trong điều kiện phòng thí nghiệm kín</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GPT-5-mini (Baseline)</strong></td>
+                        <td class="text-center">56.75%</td>
+                        <td class="text-center">67.07%</td>
+                        <td class="text-center">49.56%</td>
+                        <td>Khả năng tổng quát hóa tốt nhưng chi phí API cao</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LLM4Decompile (Baseline)</strong></td>
+                        <td class="text-center">41.71%</td>
+                        <td class="text-center">67.07%</td>
+                        <td class="text-center">28.32%</td>
+                        <td>Đơn pha; dễ sinh ảo giác cú pháp ở -O3</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Idioms (Rule-based)</strong></td>
+                        <td class="text-center">29.81%</td>
+                        <td class="text-center">70.73%</td>
+                        <td class="text-center">10.62%</td>
+                        <td>Rất kém ở vòng lặp phức tạp</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td><strong>SK²Decompile (Thực nghiệm mới của tôi)</strong></td>
+                        <td class="text-center c-success font-bold">27.51%</td>
+                        <td class="text-center c-success font-bold">40.24%</td>
+                        <td class="text-center">14.16%</td>
+                        <td><strong>Re-comp đạt 52.73%; khôi phục định danh cực tốt</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">
+                * Nhận định: Tại mức không tối ưu hóa (-O0), thực nghiệm độc lập đạt <strong>40.24% Re-executability</strong>, vượt qua năng lực của Idioms trên các cấu trúc vòng lặp.
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 11: CASE STUDY 1 ==================== -->
+    <div class="slide" id="slide-11">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Case Study Tiêu Biểu</span>
+                <div class="slide-title">Case Study 1: Thành Công Ngoạn Mục Về Tái Tạo Định Danh</div>
+                <div class="slide-subtitle">Hàm dump_header_page (MariaDB / ma_loghandler.c, -O0)</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <div class="card">
+                    <h4>🦴 Pha 1: Structure IR (Khung xương biến tạm)</h4>
+                    <pre class="code-box"><code>void dump_header_page(unsigned char *var1) {
+    unsigned long var2, var3, var4, var5;
+    int var8, var9, var10;
+    struct type1 var14;
+    translog_interpret_file_header(&var14, var1);
+    localtime_r(&var14.field1, &var14.field2);
+    var8 = var14.field2.field3 + 1900;
+    var9 = var14.field2.field4 + 1;
+    var10 = var14.field2.field5;
+    printf("Timestamp: %04d.%02d.%02d", var8, var9, var10);
+}</code></pre>
+                </div>
+                <div class="card" style="border-color: var(--success);">
+                    <h4 class="c-success">✨ Pha 2: Identifier Recovery (Da thịt giàu ngữ nghĩa)</h4>
+                    <pre class="code-box"><code>void dump_header_page(unsigned char *page) {
+    unsigned long sec, arialog_version;
+    int year, month, day;
+    struct translog_file_header header;
+    translog_interpret_file_header(&header, page);
+    localtime_r(&header.timestamp, &header.tm);
+    year  = header.tm.tm_year + 1900;
+    month = header.tm.tm_mon + 1;
+    day   = header.tm.tm_mday;
+    printf("Timestamp: %04d.%02d.%02d", year, month, day);
+}</code></pre>
+                </div>
+            </div>
+            <div style="font-size: 13px; color: #cbd5e1; margin-top: 10px; background: rgba(16, 185, 129, 0.1); padding: 8px 14px; border-radius: 6px;">
+                💡 <strong>Đánh giá:</strong> <code>var1</code> $\rightarrow$ <code>page</code>, <code>var14</code> $\rightarrow$ <code>header</code>, <code>var8..var10</code> $\rightarrow$ <code>year, month, day</code>. Pha 2 biến mã giả vô hồn thành mã C tự nhiên tương đương mã nguồn con người viết!
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 12: CASE STUDY 2 ==================== -->
+    <div class="slide" id="slide-12">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Minh Họa Lỗi & Sửa</span>
+                <div class="slide-title">Case Study 2: Sửa Lỗi Token Collapsing Trên HumanEval-C</div>
+                <div class="slide-subtitle">Hàm func0 (HumanEval-C-0, so sánh khoảng cách float)</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <div class="card" style="border-color: var(--danger);">
+                    <h4 class="c-danger">❌ Lần Chạy 1: Lỗi Nuốt Dấu Cách (FAIL)</h4>
+                    <pre class="code-box"><code>// Lỗi sáp nhập token:
+intlonglongfunc0(float*x,intn,floateps){
+    inti,j;
+    for(i=0;i&lt;n;i++){
+        for(j=i+1;j&lt;n;j++){
+            if(fabs(x[i]-x[j])&lt;eps){
+                return1; // <-- Lỗi undeclared!
+            }
+        }
+    }
+    return0;
+}
+// GCC: unknown type 'intlonglongfunc0'
+// Re-comp: FAIL | Re-exec: FAIL</code></pre>
+                </div>
+                <div class="card" style="border-color: var(--success);">
+                    <h4 class="c-success">✅ Lần Chạy Mới: Sau Khử Dính Token (PASS)</h4>
+                    <pre class="code-box"><code>// Mã sau khi lọc qua Sanitizer:
+int func0(float *x, int n, float eps) {
+    int i, j;
+    for (i = 0; i &lt; n; i++) {
+        for (j = i + 1; j &lt; n; j++) {
+            if (fabs(x[i] - x[j]) &lt; eps) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+// GCC: Biên dịch thành công 100%
+// Re-comp: PASS | Re-exec: PASS (4/4 test cases)</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 13: CONCLUSIONS ==================== -->
+    <div class="slide" id="slide-13">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Tổng Kết Thực Nghiệm</span>
+                <div class="slide-title">Kết Luận Đóng Góp & Giá Trị Thực Tiễn</div>
+                <div class="slide-subtitle">Tổng hợp các kết quả kiểm chứng độc lập</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-3">
+                <div class="card" style="border-top: 4px solid var(--success);">
+                    <h4>1. Kiểm Chứng Kiến Trúc</h4>
+                    <p style="font-size: 13px; color: var(--text-muted);">
+                        Khẳng định phương pháp "Skeleton to Skin" hoàn toàn có cơ sở khoa học. Pha 2 có năng lực vượt bậc trong việc tái tạo tính dễ đọc (Readability) cho chuyên gia dịch ngược.
+                    </p>
+                </div>
+
+                <div class="card" style="border-top: 4px solid var(--primary);">
+                    <h4>2. Khắc Phục Nghẽn Kỹ Thuật</h4>
+                    <p style="font-size: 13px; color: var(--text-muted);">
+                        Làm rõ nguyên nhân ban đầu chỉ đạt 0.71% do BPE detokenizer. Sau khi chuẩn hóa token, Re-compilation đạt <strong>52.73%</strong> và Re-executability đạt <strong>27.51%</strong> (O0 đạt <strong>40.24%</strong>).
+                    </p>
+                </div>
+
+                <div class="card" style="border-top: 4px solid var(--accent);">
+                    <h4>3. Ứng Dụng Thực Tiễn</h4>
+                    <p style="font-size: 13px; color: var(--text-muted);">
+                        Đề xuất áp dụng SK²Decompile như một <strong>AI Copilot bán tự động</strong> hỗ trợ chuyên viên phân tích mã độc UIT/SOC đọc hiểu nhanh hành vi nhị phân.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SLIDE 14: FUTURE WORKS ==================== -->
+    <div class="slide" id="slide-14">
+        <div class="slide-header">
+            <div>
+                <span class="slide-tag">Đề xuất Nghiên cứu</span>
+                <div class="slide-title">Hướng Phát Triển Tiếp Theo & Q&A</div>
+                <div class="slide-subtitle">Cải tiến để đưa mô hình vào ứng dụng phòng thủ an toàn thông tin</div>
+            </div>
+        </div>
+        <div class="slide-body">
+            <div class="grid-2">
+                <div class="card">
+                    <h4>🚀 Đề Xuất Cải Tiến Kỹ Thuật</h4>
+                    <ul class="slide-list">
+                        <li><strong>Tích hợp Compiler Feedback Loop:</strong> Xây dựng cơ chế tương tác đa vòng (Multi-turn Self-debugging) ở Pha 2 để tự động sửa lỗi kiểu dữ liệu thiếu.</li>
+                        <li><strong>Bộ tiền xử lý AST Lexer:</strong> Tích hợp bộ tách từ khóa tự động trước khi nạp vào GCC để triệt tiêu lỗi BPE.</li>
+                        <li><strong>Sinh Mockup Header tự động:</strong> Sử dụng Clang Static Analyzer để tự động suy diễn struct cho mã C thực tế.</li>
+                    </ul>
+                </div>
+                <div class="card" style="justify-content: center; align-items: center; text-align: center; background: rgba(30, 41, 59, 0.4);">
+                    <div style="font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 8px;">CẢM ƠN THẦY CÔ & CÁC BẠN!</div>
+                    <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Hỏi & Đáp (Q&A Session)</div>
+                    <div style="font-size: 12px; color: #cbd5e1; background: var(--code-bg); padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border);">
+                        📁 Báo cáo chi tiết & Tài liệu: <code>BaoCao_ThucNghiem_SK2Decompile.pdf</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Navigation Controls bar -->
+<div class="nav-bar">
+    <div class="btn-group">
+        <button class="nav-btn" onclick="prevSlide()">◀ Slide Trước</button>
+        <button class="nav-btn" onclick="nextSlide()">Slide Sau ▶</button>
+    </div>
+    <div class="slide-counter" id="slideCounter">Slide 1 / 14</div>
+    <div class="btn-group">
+        <button class="nav-btn" onclick="toggleFullScreen()">⛶ Toàn Màn Hình</button>
+        <button class="nav-btn" onclick="window.print()" style="background: var(--primary-dark); color: white;">🖨️ Xuất Slide PDF</button>
+    </div>
+</div>
+
+<script>
+    let currentSlide = 1;
+    const totalSlides = 14;
+
+    function showSlide(index) {
+        if (index < 1) index = 1;
+        if (index > totalSlides) index = totalSlides;
+        
+        document.querySelectorAll('.slide').forEach((slide, i) => {
+            slide.classList.remove('active');
+            if (i === index - 1) {
+                slide.classList.add('active');
+            }
+        });
+        
+        currentSlide = index;
+        document.getElementById('slideCounter').textContent = `Slide ${currentSlide} / ${totalSlides}`;
+    }
+
+    function nextSlide() {
+        if (currentSlide < totalSlides) {
+            showSlide(currentSlide + 1);
+        }
+    }
+
+    function prevSlide() {
+        if (currentSlide > 1) {
+            showSlide(currentSlide - 1);
+        }
+    }
+
+    function toggleFullScreen() {
+        const deck = document.getElementById('presentationDeck');
+        if (!document.fullscreenElement) {
+            deck.requestFullscreen().catch(err => {
+                alert(`Không thể bật chế độ toàn màn hình: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+            e.preventDefault();
+            nextSlide();
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            prevSlide();
+        } else if (e.key === 'f' || e.key === 'F') {
+            toggleFullScreen();
+        } else if (e.key === 'Home') {
+            showSlide(1);
+        } else if (e.key === 'End') {
+            showSlide(totalSlides);
+        }
+    });
+</script>
+
+</body>
+</html>
