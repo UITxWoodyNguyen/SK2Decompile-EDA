@@ -1,10 +1,10 @@
 {
-  "phase1_syntax_errors": 136,
-  "phase1_type_errors": 598,
-  "phase2_syntax_errors": 183,
-  "phase2_type_errors": 561,
-  "propagated_errors_p1_to_p2": 727,
-  "fixed_by_phase2": 7,
+  "phase1_syntax_errors": 178,
+  "phase1_type_errors": 588,
+  "phase2_syntax_errors": 270,
+  "phase2_type_errors": 508,
+  "propagated_errors_p1_to_p2": 760,
+  "fixed_by_phase2": 6,
   "logic_runtime_errors": 0,
   "error_examples": [
     {
@@ -39,21 +39,28 @@
       "sample_idx": 4,
       "opt": "O0",
       "p1_error": "type_or_symbol_error",
-      "p2_error": "type_or_symbol_error",
+      "p2_error": "syntax_error",
       "exe_ok": false
     },
     {
       "sample_idx": 5,
       "opt": "O0",
       "p1_error": "syntax_error",
-      "p2_error": "type_or_symbol_error",
+      "p2_error": "syntax_error",
+      "exe_ok": false
+    },
+    {
+      "sample_idx": 6,
+      "opt": "O0",
+      "p1_error": "syntax_error",
+      "p2_error": "syntax_error",
       "exe_ok": false
     },
     {
       "sample_idx": 7,
       "opt": "O0",
       "p1_error": "type_or_symbol_error",
-      "p2_error": "type_or_symbol_error",
+      "p2_error": "syntax_error",
       "exe_ok": false
     },
     {
@@ -116,7 +123,7 @@
       "sample_idx": 17,
       "opt": "O0",
       "p1_error": "type_or_symbol_error",
-      "p2_error": "type_or_symbol_error",
+      "p2_error": "syntax_error",
       "exe_ok": false
     },
     {
@@ -138,13 +145,6 @@
       "opt": "O0",
       "p1_error": "type_or_symbol_error",
       "p2_error": "type_or_symbol_error",
-      "exe_ok": false
-    },
-    {
-      "sample_idx": 21,
-      "opt": "O0",
-      "p1_error": "syntax_error",
-      "p2_error": "syntax_error",
       "exe_ok": false
     }
   ]
